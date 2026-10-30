@@ -38,4 +38,3 @@ df[num_cols] = df[num_cols].fillna(df.groupby(["Year", "Month"])[num_cols].trans
 df[num_cols] = df[num_cols].fillna(df[num_cols].median())
 for col in ["Day of the week", "Holiday name/Weekend"]:
     df[col] = df[col].fillna(df[col].mode()[0])
-print(hello)
