@@ -106,3 +106,106 @@ def fit_xgboost(train_end, data):
         cov = covariates(days, known_until)
         return model.predict(table_features(days, area_no, cov)) * scale[areas[area_no]]
     return predict
+
+def seq_features(days, cov):                               # LSTM Model 
+    year_angle = 2 * np.pi * days.dayofyear.values / 365.25
+    week_angle = 2 * np.pi * days.dayofweek.values / 7
+    return np.column_stack([
+        (days - first_day).days.values / 2500,
+        np.sin(year_angle), np.cos(year_angle),
+        np.sin(week_angle), np.cos(week_angle),
+        cov["holiday"].values,
+        (cov["temp"].values - temp_mean) / temp_std,
+    ]).astype("float32") 
+def windows(area_no, targets, known_until):
+    # for every target day: the features of that day and the SEQ-1 days before it
+    days = pd.date_range(targets.min() - pd.Timedelta(days=SEQ - 1), targets.max())
+    m = seq_features(days, covariates(days, known_until))
+    pos = (targets - days[0]).days.values
+    x = np.stack([m[p - SEQ + 1:p + 1] for p in pos])
+    area_flag = np.zeros((len(targets), SEQ, len(areas)), dtype="float32")
+    area_flag[:, :, area_no] = 1
+    return np.concatenate([x, area_flag], axis=2)
+class Net(nn.Module):
+    def __init__(self, n_in):
+        super().__init__()
+        self.lstm = nn.LSTM(n_in, 48, batch_first=True)
+        self.out = nn.Linear(48, 1)
+ 
+    def forward(self, x):
+        o, _ = self.lstm(x)
+        return self.out(o[:, -1]).squeeze(1)
+
+def fit_lstm(train_end, data):
+    days = all_days[all_days <= train_end][SEQ - 1:]
+    scale = data.loc[all_days <= train_end].mean()
+    xs, ys, is_val = [], [], []
+    for i, a in enumerate(areas):
+        y = data.loc[days, a] / scale[a]
+        ok = y.notna().values
+        xs.append(windows(i, days[ok], train_end))
+        ys.append(y.values[ok])
+        is_val.append(np.asarray(days[ok] > train_end - pd.Timedelta(days=90)))
+    x = torch.tensor(np.concatenate(xs))
+    y = torch.tensor(np.concatenate(ys).astype("float32"))
+    val = torch.tensor(np.concatenate(is_val))
+    x_train, y_train, x_val, y_val = x[~val], y[~val], x[val], y[val]
+ 
+    net = Net(x.shape[2])
+    opt = torch.optim.Adam(net.parameters(), lr=0.003)
+    best, best_state = float("inf"), None
+    for epoch in range(30):  # the last 90 days of training data pick the best epoch
+        net.train()
+        order = torch.randperm(len(x_train))
+        for b in range(0, len(order), 128):
+            idx = order[b:b + 128]
+            opt.zero_grad()
+            nn.functional.mse_loss(net(x_train[idx]), y_train[idx]).backward()
+            opt.step()
+        net.eval()
+        with torch.no_grad():
+            loss = nn.functional.mse_loss(net(x_val), y_val).item()
+        if loss < best:
+            best, best_state = loss, {k: v.clone() for k, v in net.state_dict().items()}
+    net.load_state_dict(best_state)
+    net.eval()
+    def predict(area_no, days, known_until):
+        with torch.no_grad():
+            out = net(torch.tensor(windows(area_no, days, known_until))).numpy()
+        return out * scale[areas[area_no]]
+    return predict
+ 
+models = {"Baseline": fit_baseline, "XGBoost": fit_xgboost, "LSTM": fit_lstm}
+
+def compare():
+    split = pd.Timestamp("2025-12-31")                    # Data training and models comparison
+    test_days = all_days[all_days > split]
+    actual = demand.loc[test_days].stack()
+    when = actual.index.get_level_values(0)
+    holiday = records["Holiday_cat/weekend"].reindex(when).values == 1
+    hot = when.month.isin([4, 5, 6, 7, 8])
+    groups = {"All days": np.ones(len(actual), bool), "Working days": ~holiday,
+              "Weekends/holidays": holiday, "Hot months (Apr-Aug)": hot,
+              "Cool months (Jan-Mar)": ~hot}
+ 
+    summary, by_group = {}, {}
+    for name, fit in models.items():
+        start = time.time()
+        predict = fit(split, demand)
+        seconds = time.time() - start
+        pred = pd.DataFrame({a: predict(i, test_days, split) for i, a in enumerate(areas)},
+                            index=test_days).stack().loc[actual.index]
+        err = actual - pred
+        summary[name] = {"MAE (MW)": err.abs().mean(), "RMSE (MW)": np.sqrt((err ** 2).mean()),
+                         "MAPE (%)": (err.abs() / actual).mean() * 100, "Train time (s)": seconds}
+        by_group[name] = {g: err[m].abs().mean() for g, m in groups.items()}
+ 
+    summary = pd.DataFrame(summary).T
+    summary["MAE gain vs baseline (%)"] = (1 - summary["MAE (MW)"] / summary.loc["Baseline", "MAE (MW)"]) * 100
+    print("\nTest period:", test_days[0].date(), "to", test_days[-1].date())
+    print(summary.round(1))
+    print("\nMAE (MW) by type of day")
+    print(pd.DataFrame(by_group).round(1))
+    gain = (1 - summary.loc["LSTM", "MAE (MW)"] / summary.loc["XGBoost", "MAE (MW)"]) * 100
+    print(f"\nLSTM vs XGBoost: {gain:+.1f}% MAE, training time {summary.loc['LSTM', 'Train time (s)']:.0f}s "
+          f"vs {summary.loc['XGBoost', 'Train time (s)']:.0f}s")
