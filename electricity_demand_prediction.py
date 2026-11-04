@@ -126,4 +126,94 @@ def fit_lstm(train_end):
 
 models = {"Baseline": fit_baseline, "XGBoost": fit_xgboost, "LSTM": fit_lstm}      #Model can be picked by its name
 
+
+def compare():                                # Compare different modles on the test period.
+    split = pd.Timestamp("2025-12-31 23:00")  # train up to this hour, test on the hours after it
+    test = data.loc[split + pd.Timedelta(hours=1):]
+    cal = calendar(test.index)
+    groups = {
+        "All hours": np.ones(len(test), bool),
+        "Working days": cal["holiday"].values == 0,
+        "Weekends/holidays": cal["holiday"].values == 1,
+        "Night (12 am-5 am)": test.index.hour <= 5,
+        "Evening peak (6 pm-10 pm)": (test.index.hour >= 18) & (test.index.hour <= 22),
+    }
+    actual = test["generation_mw"].values
+
+    summary, by_group, by_column = {}, {}, {}
+    for name, fit in models.items():
+        start = time.time()
+        predict = fit(split)
+        seconds = time.time() - start
+        err = test.values - np.clip(predict(test.index), 0, None)
+        gen_err = err[:, 0]
+        summary[name] = {"MAE (MW)": np.abs(gen_err).mean(), "RMSE (MW)": np.sqrt((gen_err ** 2).mean()),
+                         "MAPE (%)": (np.abs(gen_err) / actual).mean() * 100, "Train time (s)": seconds}
+        by_group[name] = {g: np.abs(gen_err[m]).mean() for g, m in groups.items()}
+        by_column[name] = dict(zip(names, np.abs(err).mean(axis=0)))
+
+    summary = pd.DataFrame(summary).T
+    summary["MAE gain vs baseline (%)"] = (1 - summary["MAE (MW)"] / summary.loc["Baseline", "MAE (MW)"]) * 100
+    print("\nTest period:", test.index[0], "to", test.index[-1])
+    print("\nTotal generation")
+    print(summary.round(1))
+    print("\nTotal generation, MAE (MW) by type of hour")
+    print(pd.DataFrame(by_group).round(1))
+    print("\nMAE (MW) of every column")
+    print(pd.DataFrame(by_column).round(1))
+    gain = (1 - summary.loc["LSTM", "MAE (MW)"] / summary.loc["XGBoost", "MAE (MW)"]) * 100
+    print(f"\nLSTM vs XGBoost: {gain:+.1f}% MAE, training time {summary.loc['LSTM', 'Train time (s)']:.0f}s "
+          f"vs {summary.loc['XGBoost', 'Train time (s)']:.0f}s")
+
+
+def read_dates(text):                                       # User Inpute Method
+    pattern = r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})"
+    found = re.findall(pattern, text.lower())
+    left = re.sub(r"from|to|[\s,-]", "", re.sub(pattern, "", text.lower()))
+    if len(found) not in (1, 2) or left:
+        raise ValueError
+    dates = [pd.Timestamp(year=int(y), month=int(m), day=int(d)) for d, m, y in found]
+    if len(dates) == 1:
+        dates = dates * 2
+    if dates[0] < first_time.normalize() or dates[1] < dates[0] or (dates[1] - dates[0]).days > 366:
+        raise ValueError
+    return dates
+
+def read_hours(text):
+    text = text.lower().strip()
+    if not text:
+        return list(range(24))
+    pattern = r"\b(\d{1,2})(?::00)?\s*(am|pm)?\b"
+    found = re.findall(pattern, text)
+    left = re.sub(r"from|to|[\s-]", "", re.sub(pattern, "", text))
+    if len(found) not in (1, 2) or left:
+        raise ValueError
+    hours = []
+    for h, am_pm in found:
+        h = int(h)
+        if am_pm:
+            if not 1 <= h <= 12:
+                raise ValueError
+            h = h % 12 + (12 if am_pm == "pm" else 0)
+        elif h > 23:
+            raise ValueError
+        hours.append(h)
+    if len(hours) == 2 and hours[1] < hours[0]:
+        raise ValueError
+    return list(range(hours[0], hours[-1] + 1))
+
+def search(start, end, hours):
+    times = pd.DatetimeIndex([d + pd.Timedelta(hours=h) for d in pd.date_range(start, end) for h in hours])
+    known = times.isin(data.index)
+    values = np.zeros((len(times), len(targets)))
+    values[known] = data.loc[times[known]].values
+    if (~known).any():
+        print("\nPredicting the hours after the data ends, please wait...")
+        predict = models[MODEL](last_time)
+        values[~known] = np.clip(predict(times[~known]), 0, None)
+
+    result = pd.DataFrame(values.round().astype(int), columns=names)
+    result.insert(0, "Time", times.strftime("%I %p").str.lstrip("0"))
+    result.insert(0, "Day", times.day_name())
+    result.insert(0, "Date", times.strftime("%d-%m-%Y"))
 #================================ Will Be Update Soon ================================
