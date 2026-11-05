@@ -1,22 +1,18 @@
 import re
 import sys
 import time
- 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
 from xgboost import XGBRegressor
- 
 pd.set_option("display.width", 250)
 torch.manual_seed(42)
 np.random.seed(42)
- 
 MODEL = "XGBoost"
 SEQ = 14           # number of days the LSTM looks back
  
-
 df = pd.read_csv("Bangladesh_Electricity_Dataset_2019_2026.csv")      # Load, modify the data & preprocessing.
 df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y")
 is_weekend_day = df["Day of the week"].isin(["Friday", "Saturday"])
@@ -42,7 +38,6 @@ supply = records[[a + "_supply" for a in areas]].set_axis(areas, axis=1).reindex
 temp_by_month = df.groupby("Month")[temp_col].median()
 temp_mean, temp_std = df[temp_col].mean(), df[temp_col].std()
 fixed_holidays = [(2, 21), (3, 17), (3, 26), (4, 14), (5, 1), (8, 5), (8, 15), (12, 16), (12, 25)]
-
 def day_kind(days):
     kind = pd.Series("No Holiday", index=days)
     kind.loc[np.array([(d.month, d.day) in fixed_holidays for d in days])] = "Public holiday"
@@ -170,7 +165,6 @@ def fit_lstm(train_end, data):
     return predict
  
 models = {"Baseline": fit_baseline, "XGBoost": fit_xgboost, "LSTM": fit_lstm}
-
 def compare():
     split = pd.Timestamp("2025-12-31")                    # Data training and models comparison
     test_days = all_days[all_days > split]

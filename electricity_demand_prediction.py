@@ -125,8 +125,6 @@ def fit_lstm(train_end):
     return predict
 
 models = {"Baseline": fit_baseline, "XGBoost": fit_xgboost, "LSTM": fit_lstm}      #Model can be picked by its name
-
-
 def compare():                                # Compare different modles on the test period.
     split = pd.Timestamp("2025-12-31 23:00")  # train up to this hour, test on the hours after it
     test = data.loc[split + pd.Timedelta(hours=1):]
@@ -164,7 +162,6 @@ def compare():                                # Compare different modles on the 
     gain = (1 - summary.loc["LSTM", "MAE (MW)"] / summary.loc["XGBoost", "MAE (MW)"]) * 100
     print(f"\nLSTM vs XGBoost: {gain:+.1f}% MAE, training time {summary.loc['LSTM', 'Train time (s)']:.0f}s "
           f"vs {summary.loc['XGBoost', 'Train time (s)']:.0f}s")
-
 
 def read_dates(text):                                       # User Inpute Method
     pattern = r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})"
@@ -216,4 +213,88 @@ def search(start, end, hours):
     result.insert(0, "Time", times.strftime("%I %p").str.lstrip("0"))
     result.insert(0, "Day", times.day_name())
     result.insert(0, "Date", times.strftime("%d-%m-%Y"))
+    return result
+
+def plot_results(result):                       # Plot graphs using Matplotlib library.
+    """Show the final result and, for more than 3 rows, compare with prior-year actual data."""
+    result = result.copy()
+    result["DateTime"] = pd.to_datetime(
+        result["Date"] + " " + result["Time"],
+        format="%d-%m-%Y %I %p"
+    )
+    result = result.sort_values("DateTime")
+    page_blue = "#061A40"
+    axes_blue = "#082654"
+    text_color = "#FFFFFF"
+    grid_color = "#E0DD08"
+    result_line = "#FFFFFF"
+    previous_line = "#FFC857"
+
+    def style_axis(ax, fig, title):
+        fig.patch.set_facecolor(page_blue)
+        ax.set_facecolor(axes_blue)
+        ax.set_title(title, color=text_color, fontsize=14, weight="bold", pad=14)
+        ax.set_xlabel("Date and time", color=text_color)
+        ax.set_ylabel("Generation (MW)", color=text_color)
+        ax.tick_params(axis="x", colors=text_color, rotation=45)
+        ax.tick_params(axis="y", colors=text_color)
+        for spine in ax.spines.values():
+            spine.set_color(grid_color)
+        ax.grid(True, color=grid_color, alpha=0.35, linestyle="--")
+        legend = ax.legend(facecolor=axes_blue, edgecolor=grid_color)
+        for label in legend.get_texts():
+            label.set_color(text_color)
+    
+    fig, ax = plt.subplots(figsize=(13, 6))
+    ax.plot(
+        result["DateTime"], result["Generation (MW)"],
+        color=result_line, marker="o", markersize=4, linewidth=2,
+        label="Final result — generation (MW)"
+    )
+    style_axis(ax, fig, "Bangladesh Electricity Generation")
+    fig.tight_layout()
+    plt.show()
+
+    if len(result) > 3:                                   # compare with actual data
+        previous_times = result["DateTime"] - pd.DateOffset(years=1)
+        previous_values = pd.Series(np.nan, index=result.index, dtype="float64")
+
+        matched = previous_times.isin(data.index)
+        if matched.any():
+            previous_values.loc[matched] = data.loc[
+                pd.DatetimeIndex(previous_times[matched]), "generation_mw"
+            ].to_numpy()
+
+            fig, ax = plt.subplots(figsize=(13, 6))
+            ax.plot(
+                result["DateTime"], result["Generation (MW)"],
+                color=result_line, marker="o", markersize=4, linewidth=2,
+                label="Current / predicted result"
+            )
+            ax.plot(
+                result["DateTime"], previous_values,
+                color=previous_line, marker="s", markersize=4, linewidth=1.8,
+                linestyle="--", label="Previous year's actual result"
+            )
+            style_axis(ax, fig, "Current Result vs Previous Year's Actual Generation")
+            fig.tight_layout()
+            plt.show()
+        else:
+            print("Previous-year comparison skipped: no matching historical timestamps were found.")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "compare":
+        compare()
+    else:
+        try:
+            start, end = read_dates(input("Enter a date or a timeline (e.g. 18/12/2026 or 18/11/2026 to 17/01/2027): "))
+            hours = read_hours(input("Enter the time (e.g. 10 am or 10 am to 1 pm, press Enter for all 24 hours): "))
+        except ValueError:
+            print("Invalide input, please try again after some time.")
+        else:
+            print()
+            result = search(start, end, hours)
+            print(result.to_string(index=False))
+            plot_results(result)
 #================================ Will Be Update Soon ================================
