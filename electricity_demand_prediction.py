@@ -99,7 +99,6 @@ def fit_lstm(train_end):
     y = torch.tensor(((train - mean) / std).values, dtype=torch.float32)
     val = torch.tensor(np.asarray(train.index > train_end - pd.Timedelta(days=90)))
     x_train, y_train, x_val, y_val = x[~val], y[~val], x[val], y[val]
-
     net = Net(x.shape[2], len(targets))
     opt = torch.optim.Adam(net.parameters(), lr=0.003)
     best, best_state = float("inf"), None
@@ -282,7 +281,6 @@ def plot_results(result):                       # Plot graphs using Matplotlib l
         else:
             print("Previous-year comparison skipped: no matching historical timestamps were found.")
 
-
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "compare":
         compare()
@@ -297,4 +295,3 @@ if __name__ == "__main__":
             result = search(start, end, hours)
             print(result.to_string(index=False))
             plot_results(result)
-#================================ Will Be Update Soon ================================
