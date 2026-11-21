@@ -429,4 +429,4 @@ Change this variable to select the model you want to use.
 - Add automated model retraining.
 - Improve forecasting for peak electricity demand periods.
 
-*This project demonstrates the practical application of machine learning, deep learning, time-series forecasting, data preprocessing, model evaluation, and data visualization in Bangladesh's electricity sector.*
+##*This project demonstrates the practical application of machine learning, deep learning, time-series forecasting, data preprocessing, model evaluation, and data visualization in Bangladesh's electricity sector.*
