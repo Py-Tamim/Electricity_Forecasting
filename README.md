@@ -1,101 +1,432 @@
-Electricity Forecasting – Bangladesh
-Two console programs that forecast Bangladesh's electricity data from 2019–2026 history. Enter a date (or a date range) and get a table plus graphs. Dates inside the dataset return the recorded values, and dates after the data ends are forecast by a machine-learning model.
-Script	What it forecasts	Data file	Resolution
-`electricity_demand_prediction.py`	Demand, supply and load shedding for each area (Barishal, Chattogram, Cumilla, Dhaka, Khulna, Mymensingh, Rajshahi, Rangpur, Sylhet)	`Bangladesh_Electricity_Dataset_2019_2026.csv`	Daily
-`electricity_forecasting.py`	Total generation and each source: gas, liquid fuel, coal, hydro, solar, wind, India (Bheramara, Tripura, Adani) and Nepal import	`bangladesh_power_generation_2019_2026_processed.csv`	Hourly
-Models
-Each script includes three models and can compare them:
-Baseline – average value for the same month, holiday/weekend flag (and hour, in the hourly script).
-XGBoost (default) – gradient-boosted trees on calendar features (month, day of year, weekday, holiday, temperature for the daily script, hour for the hourly script).
-LSTM (PyTorch) – a recurrent network that looks back 14 days (daily) or 24 hours (hourly).
-Pick the model for searches with the `MODEL` variable at the top of each file. Run `python <script>.py compare` to train all three on data up to 2025-12-31 and compare MAE, RMSE, MAPE and training time on the later period.
-Data cleaning
-Fridays and Saturdays are treated as weekends, and fixed public holidays are flagged.
-A temperature of 0 °C for Dhaka is treated as a missing reading.
-Impossible values are removed (for example, extreme generation spikes and generation below 2,000 MW).
-Missing values are filled with the median of the same year, month (and hour), then the overall median.
-Hourly script: readings within the same hour (such as 7:30 pm peak readings) are averaged.
-Results
-Both examples below are forecasts for 18-12-2026 (Friday, weekend).
-1. Area-wise demand, supply and load shedding
-![Area-wise forecast for 18-12-2026](images/area_demand_forecast.png)
+# Bangladesh Electricity Forecasting & Demand Prediction
 
-Area	              Demand (MW)	    Supply (MW)	    Load shedding (MW)
-Barishal	             399	          357	                 42
-Chattogram	          1281	         1186	                 95
-Cumilla	              1234	         1079	                 154
-Dhaka	                4668	         4273	                 395
-Khulna	              1570	         1399	                 171
-Mymensingh	          1121	         933	                 188
-Rajshahi	            1277	         1160	                 116
-Rangpur	              929	           826	                 103
-Sylhet	              548	           473	                 75
-All areas	            13,027	       11,686	              ≈1,339
-Takeaways:
-Dhaka is by far the largest area, at about 36% of total forecast demand (4,668 of 13,027 MW), and also has the largest load shedding (395 MW).
-Mymensingh has the highest load shedding relative to its demand (188 of 1,121 MW, about 17%).
-Supply is capped at demand in the model, so load shedding is the gap between the two.
-3. Hourly generation, 10 AM – 5 PM
-![Hourly generation forecast](images/hourly_generation_forecast.png)
-Time	 Generation	 Gas	Liquid 	Coal	Hydro	Solar	Wind	Bheramara	Tripura	Adani	Nepal
-10 AM	   8773	    3646	402	    4158	  40	 543	  0	      514	     57	   938	 0
-11 AM	   9115	    3673	417	    4153	  41	 596	  0	      531	     59	   939	 0
-12 PM	   9502	    3800	684	    4166	  42	 626	  0	      530	     64	   974	 0
-1 PM	   9890	    3783	1090	  4247	  42	 593	  0	      530	     66	   1011	 0
-2 PM	   9247	    3495	1037	4178	   42	   510	  0	      527	     65	   1004	 0
-3 PM	   9081	    3499	991	  4160	   42	   373	  0	      527	     61	   995	 0
-4 PM	   8853	    3513	964	  4136	   42	   173	  0	      523	     59	   995	 0
-5 PM	   9021	    3504	1149	4163	   42	   41	    0	      547	     60	   1027	 0
-All values are in MW.
-Takeaways:
-Generation peaks at 9,890 MW at 1 PM and is lowest at 8,773 MW at 10 AM.
-Solar peaks around midday (626 MW at 12 PM) and fades to 41 MW by 5 PM. Liquid fuel rises in the afternoon as solar drops.
-Coal (about 4,150 MW) and gas (about 3,500–3,800 MW) provide most of the generation.
-4. Forecast vs. the previous year's actual generation
-![Forecast vs previous year](images/generation_vs_previous_year.png)
-For ranges of more than 3 rows, the hourly script also plots the actual generation at the same date and time one year earlier. In this example the forecast follows the same shape as last year (rise to a 1 PM peak, then a decline), but it is roughly 500–1,000 MW lower at every hour. Last year's values are read from the graph, so they are approximate.
-Installation
-Python 3.15 is used for this project.
-```bash
-python -m pip install numpy pandas matplotlib scikit-learn xgboost torch
-```
-`torch` is imported only when the LSTM is used, so Baseline and XGBoost work without it.
-Usage
-Put the CSV files in the same folder as the scripts, then run:
-```bash
-python electricity_demand_prediction.py     # daily, by area
-python electricity_forecasting.py           # hourly, by source
-```
-Example input (daily script):
-```
-Enter a date or a timeline (e.g. 18/12/2026 or 18/11/2026 to 17/01/2027): 18/12/2026
-Area name (press Enter for all areas):
-```
-Example input (hourly script):
-```
-Enter a date or a timeline (e.g. 18/12/2026 or 18/11/2026 to 17/01/2027): 18/12/2026
-Enter the time (e.g. 10 am or 10 am to 1 pm, press Enter for all 24 hours): 10 am to 5 pm
-```
-Rules: dates are `dd/mm/yyyy`, a range can span at most 366 days, and dates before the start of the dataset are rejected.
-To compare the models:
-```bash
-python electricity_demand_prediction.py compare
-python electricity_forecasting.py compare
-```
-Project structure
-```
-.
+## Project Overview
+
+This project focuses on analyzing and forecasting electricity demand, supply, generation, and load shedding in Bangladesh using machine learning and deep learning techniques.
+
+It contains two independent forecasting systems:
+
+**1. Electricity Demand Prediction**
+
+Predicts daily electricity demand, supply, and load shedding across nine divisions of Bangladesh.
+
+**2. Electricity Generation Forecasting**
+
+Predicts hourly electricity generation and its different energy sources, including gas, liquid fuel, coal, hydro, solar, wind, and electricity imports from neighboring countries.
+
+Both systems allow users to enter a specific date or date range and retrieve historical or future predictions through the terminal.
+
+## Project Objectives
+
+- Forecast electricity demand across different divisions of Bangladesh.
+- Predict electricity generation on an hourly basis.
+- Estimate electricity supply and potential load shedding.
+- Analyze different electricity generation sources.
+- Compare Baseline, XGBoost, and LSTM models.
+- Evaluate forecasting performance using MAE, RMSE, and MAPE.
+- Analyze model performance across different days, seasons, and hours.
+- Visualize forecasting results through graphical comparisons.
+
+## Technologies Used
+
+| Technology | Purpose |
+|---|---|
+| Python | Main programming language |
+| Pandas | Data processing and analysis |
+| NumPy | Numerical calculations |
+| Matplotlib | Data visualization |
+| Scikit-learn | Machine learning utilities |
+| XGBoost | Gradient boosting regression |
+| PyTorch | LSTM deep learning model |
+| Pathlib | File path management |
+
+## Project Structure
+
+```text
+Bangladesh-Electricity-Forecasting/
+│
 ├── electricity_demand_prediction.py
 ├── electricity_forecasting.py
+│
 ├── Bangladesh_Electricity_Dataset_2019_2026.csv
 ├── bangladesh_power_generation_2019_2026_processed.csv
-├── images/
-│   ├── area_demand_forecast.png
-│   ├── hourly_generation_forecast.png
-│   └── generation_vs_previous_year.png
-└── README.md
+│
+├── result.png
+│
+├── README.md
+└── requirements.txt
 ```
-Limitations
-Forecasts use only calendar information (and monthly typical temperature in the daily script), not real weather, fuel availability or plant outages, so they show typical patterns rather than exact values.
-Holidays that move each year (such as Eid) are not in the fixed holiday list.
-Forecasts far beyond the end of the data become less reliable.
+
+## Project 1: Electricity Demand Prediction
+
+### Overview
+
+This system predicts electricity demand and supply across nine divisions of Bangladesh.
+
+It also estimates potential load shedding by calculating the difference between predicted demand and predicted supply.
+
+### Covered Divisions
+
+- Barishal
+- Chattogram
+- Cumilla
+- Dhaka
+- Khulna
+- Mymensingh
+- Rajshahi
+- Rangpur
+- Sylhet
+
+### Dataset
+
+**File:** `Bangladesh_Electricity_Dataset_2019_2026.csv`
+
+The dataset contains daily electricity-related information, including:
+
+- Date and year
+- Month and day of the week
+- Holiday information
+- Maximum temperature in Dhaka
+- Electricity demand by division
+- Electricity supply by division
+- Load-shedding information
+
+### Data Preprocessing
+
+The following preprocessing techniques are applied:
+
+- Convert dates into datetime format.
+- Identify Fridays and Saturdays as weekends.
+- Identify public holidays.
+- Replace invalid zero temperature readings with missing values.
+- Fill missing numerical values using the median of the same year and month.
+- Use the overall median as a backup for remaining missing values.
+- Fill missing categorical values using the most frequent value.
+
+### Machine Learning Models
+
+Three models are implemented:
+
+**1. Baseline Model**
+
+Uses historical average electricity demand and supply based on the month and holiday category.
+
+**2. XGBoost Regressor**
+
+Uses calendar information, area information, and temperature-related features to predict electricity demand and supply.
+
+**3. LSTM (Long Short-Term Memory)**
+
+Uses sequential daily information to learn patterns over time.
+
+- Sequence length: 14 days
+- Hidden layer size: 48
+- Optimizer: Adam
+- Learning rate: 0.003
+- Training epochs: 30
+
+### Prediction Output
+
+Example: 18 December 2026
+
+| Division | Demand (MW) | Supply (MW) | Load Shedding (MW) |
+|---|---:|---:|---:|
+| Barishal | 399 | 357 | 42 |
+| Chattogram | 1,281 | 1,186 | 95 |
+| Cumilla | 1,234 | 1,079 | 154 |
+| Dhaka | 4,668 | 4,273 | 395 |
+| Khulna | 1,570 | 1,399 | 171 |
+| Mymensingh | 1,121 | 933 | 188 |
+| Rajshahi | 1,277 | 1,160 | 116 |
+| Rangpur | 929 | 826 | 103 |
+| Sylhet | 548 | 473 | 75 |
+
+*These are example outputs from the forecasting system.*
+
+### Visualization
+
+The demand prediction system generates graphs showing:
+
+- Electricity demand
+- Electricity supply
+- Estimated load shedding
+- Daily and multi-day forecasting trends
+
+For future dates, the forecast period is highlighted in grey on multi-day graphs.
+
+## Project 2: Electricity Generation Forecasting
+
+### Overview
+
+This system forecasts Bangladesh's electricity generation on an hourly basis.
+
+It predicts total generation as well as the contribution of different energy sources and electricity imports.
+
+### Dataset
+
+**File:** `bangladesh_power_generation_2019_2026_processed.csv`
+
+The dataset contains hourly electricity generation information.
+
+### Prediction Features
+
+The model predicts 11 different electricity-related values:
+
+| Parameter | Description |
+|---|---|
+| Generation (MW) | Total electricity generation |
+| Gas | Electricity generated from gas |
+| Liquid Fuel | Electricity generated from liquid fuel |
+| Coal | Electricity generated from coal |
+| Hydro | Hydroelectric generation |
+| Solar | Solar electricity generation |
+| Wind | Wind electricity generation |
+| Bheramara | Electricity imported through Bheramara HVDC |
+| Tripura | Electricity imported from Tripura |
+| Adani | Electricity imported from Adani |
+| Nepal | Electricity imported from Nepal |
+
+### Data Preprocessing
+
+The following preprocessing techniques are applied:
+
+- Combine date and time into a single timestamp.
+- Group multiple readings within the same hour and calculate their average.
+- Identify and remove unusually high readings.
+- Remove invalid total generation readings below 2,000 MW.
+- Create a continuous hourly timeline.
+- Fill missing values using the median of the same year, month, and hour.
+- Use the overall median as a backup for remaining missing values.
+
+### Machine Learning Models
+
+**1. Baseline Model**
+
+Uses historical average generation values based on month, holiday status, and hour of the day.
+
+**2. XGBoost**
+
+Uses calendar-based features such as:
+
+- Hour
+- Weekday
+- Month
+- Day of the year
+- Holiday information
+- Day number
+
+The model uses MultiOutputRegressor to predict multiple electricity generation parameters.
+
+**3. LSTM (Long Short-Term Memory)**
+
+Uses sequential hourly calendar features to learn time-based patterns.
+
+- Sequence length: 24 hours
+- Hidden layer size: 48
+- Optimizer: Adam
+- Learning rate: 0.003
+- Training epochs: 20
+
+### Prediction Output
+
+Example: 18 December 2026
+
+| Time | Generation (MW) | Gas | Liquid Fuel | Coal | Solar |
+|---|---:|---:|---:|---:|---:|
+| 10 AM | 8,773 | 3,646 | 402 | 4,158 | 543 |
+| 11 AM | 9,115 | 3,673 | 417 | 4,153 | 596 |
+| 12 PM | 9,502 | 3,800 | 684 | 4,166 | 626 |
+| 1 PM | 9,890 | 3,783 | 1,090 | 4,247 | 593 |
+| 2 PM | 9,247 | 3,495 | 1,037 | 4,178 | 510 |
+| 3 PM | 9,081 | 3,499 | 991 | 4,160 | 373 |
+| 4 PM | 8,853 | 3,513 | 964 | 4,136 | 173 |
+| 5 PM | 9,021 | 3,504 | 1,149 | 4,163 | 41 |
+
+*The table shows selected columns from the example terminal output.*
+
+### Visualization
+
+The generation forecasting system produces two graphs:
+
+1. **Bangladesh Electricity Generation:** Displays the final predicted or historical generation results.
+2. **Current Result vs Previous Year's Actual Generation:** Compares the current results with actual generation recorded at the same date and time one year earlier, when matching historical data is available.
+
+## Model Evaluation and Comparison
+
+Both forecasting systems support model comparison.
+
+The available models are:
+
+- Baseline
+- XGBoost
+- LSTM
+
+### Evaluation Metrics
+
+| Metric | Description |
+|---|---|
+| MAE | Mean Absolute Error |
+| RMSE | Root Mean Squared Error |
+| MAPE | Mean Absolute Percentage Error |
+| Training Time | Time required to train each model |
+
+### Electricity Demand Evaluation
+
+The demand prediction system compares model performance across:
+
+- All days
+- Working days
+- Weekends and holidays
+- Hot months (April–August)
+- Cool months (January–March)
+
+It also calculates the MAE gain against the Baseline model.
+
+### Electricity Generation Evaluation
+
+The generation forecasting system evaluates performance across:
+
+- All hours
+- Working days
+- Weekends and holidays
+- Night hours (12 AM–5 AM)
+- Evening peak hours (6 PM–10 PM)
+
+It also compares the MAE of individual generation and import parameters.
+
+### Train-Test Split
+
+Both systems use a chronological train-test split ending on:
+
+**31 December 2025**
+
+- Training data: Up to 31 December 2025.
+- Testing data: After 31 December 2025.
+
+This approach preserves the time order of the observations when evaluating forecasting performance.
+
+## Installation and Usage
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/Bangladesh-Electricity-Forecasting.git
+```
+
+### 2. Navigate to the Project Folder
+
+```bash
+cd Bangladesh-Electricity-Forecasting
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Alternatively:
+
+```bash
+pip install numpy pandas matplotlib scikit-learn xgboost
+```
+
+For LSTM support:
+
+```bash
+pip install torch
+```
+
+**Note:** PyTorch is optional for Baseline and XGBoost models. Both scripts import PyTorch only when the LSTM model is selected.
+
+### 4. Run Electricity Demand Prediction
+
+```bash
+python electricity_demand_prediction.py
+```
+
+Enter a date or date range when prompted.
+
+Example:
+
+```text
+18/12/2026
+```
+
+Or:
+
+```text
+18/11/2026 to 17/01/2027
+```
+
+Enter a division name or press Enter to forecast all divisions.
+
+To compare the models:
+
+```bash
+python electricity_demand_prediction.py compare
+```
+
+### 5. Run Electricity Generation Forecasting
+
+```bash
+python electricity_forecasting.py
+```
+
+Enter a date or date range:
+
+```text
+18/12/2026
+```
+
+Enter a time:
+
+```text
+10 am to 5 pm
+```
+
+Press Enter at the time prompt to forecast all 24 hours.
+
+To compare the models:
+
+```bash
+python electricity_forecasting.py compare
+```
+
+## Changing the Forecasting Model
+
+Both Python scripts contain a `MODEL` variable.
+
+```python
+MODEL = "XGBoost"
+```
+
+Available options:
+
+```python
+MODEL = "Baseline"
+MODEL = "XGBoost"
+MODEL = "LSTM"
+```
+
+Change this variable to select the model you want to use.
+
+## Important Notes
+
+- Historical dates return available recorded data.
+- Dates beyond the available dataset generate model-based predictions.
+- Forecasting results are estimates, not official electricity supply or generation announcements.
+- Model accuracy depends on data quality, historical patterns, and the availability of relevant features.
+- Future weather, unexpected demand changes, fuel shortages, and power plant outages are not directly known to the forecasting models.
+
+## Future Improvements
+
+- Integrate real-time electricity generation data.
+- Include more weather-related features.
+- Improve long-term forecasting accuracy.
+- Experiment with advanced time-series models.
+- Develop an interactive dashboard using Streamlit.
+- Add automated model retraining.
+- Improve forecasting for peak electricity demand periods.
+
+*This project demonstrates the practical application of machine learning, deep learning, time-series forecasting, data preprocessing, model evaluation, and data visualization in Bangladesh's electricity sector.*
