@@ -2,32 +2,36 @@
 
 ## Project Overview
 
-This project focuses on analyzing and forecasting electricity demand, supply, generation, and load shedding in Bangladesh using machine learning and deep learning techniques.
+This project focuses on forecasting electricity demand, supply, generation, and potential load shedding in Bangladesh using Machine Learning and Deep Learning techniques.
 
-It contains two independent forecasting systems:
+The project consists of two independent forecasting systems:
 
 **1. Electricity Demand Prediction**
 
-Predicts daily electricity demand, supply, and load shedding across nine divisions of Bangladesh.
+Predicts daily electricity demand, supply, and potential load shedding across nine divisions of Bangladesh.
 
 **2. Electricity Generation Forecasting**
 
-Predicts hourly electricity generation and its different energy sources, including gas, liquid fuel, coal, hydro, solar, wind, and electricity imports from neighboring countries.
+Predicts hourly electricity generation and analyzes the contribution of different energy sources, including gas, liquid fuel, coal, hydro, solar, wind, and electricity imports from neighboring countries.
 
-Both systems allow users to enter a specific date or date range and retrieve historical or future predictions through the terminal.
+Both systems allow users to enter a specific date or date range and retrieve historical information or future predictions directly through the terminal.
+
+The project also compares different forecasting approaches, including Baseline, XGBoost, and LSTM, to evaluate their performance and understand which models are more suitable for electricity forecasting.
 
 ## Project Objectives
 
 - Forecast electricity demand across different divisions of Bangladesh.
-- Predict electricity generation on an hourly basis.
+- Predict hourly electricity generation.
 - Estimate electricity supply and potential load shedding.
-- Analyze different electricity generation sources.
-- Compare Baseline, XGBoost, and LSTM models.
-- Evaluate forecasting performance using MAE, RMSE, and MAPE.
-- Analyze model performance across different days, seasons, and hours.
-- Visualize forecasting results through graphical comparisons.
+- Analyze electricity generation from different energy sources.
+- Compare Baseline, XGBoost, and LSTM forecasting models.
+- Evaluate model performance using MAE, RMSE, and MAPE.
+- Analyze forecasting accuracy across different days, seasons, and hours.
+- Compare model training time and prediction performance.
+- Visualize historical data and forecasting results through graphs.
+- Develop a flexible forecasting system that supports specific dates and date ranges.
 
-## Technologies Used
+## Technologies and Libraries Used
 
 | Technology | Purpose |
 |---|---|
@@ -35,10 +39,10 @@ Both systems allow users to enter a specific date or date range and retrieve his
 | Pandas | Data processing and analysis |
 | NumPy | Numerical calculations |
 | Matplotlib | Data visualization |
-| Scikit-learn | Machine learning utilities |
+| Scikit-learn | Machine learning utilities and evaluation |
 | XGBoost | Gradient boosting regression |
-| PyTorch | LSTM deep learning model |
-| Pathlib | File path management |
+| PyTorch | LSTM deep learning implementation |
+| Pathlib | File and directory management |
 
 ## Project Structure
 
@@ -53,49 +57,53 @@ Bangladesh-Electricity-Forecasting/
 │
 ├── result.png
 │
-├── README.md
-└── requirements.txt
+├── requirements.txt
+└── README.md
 ```
 
-## Project 1: Electricity Demand Prediction
+# Project 1: Electricity Demand Prediction
 
-### Overview
+## Overview
 
-This system predicts electricity demand and supply across nine divisions of Bangladesh.
+The Electricity Demand Prediction system forecasts daily electricity demand and supply across nine divisions of Bangladesh.
 
-It also estimates potential load shedding by calculating the difference between predicted demand and predicted supply.
+It also estimates potential load shedding by calculating the difference between predicted electricity demand and predicted supply.
 
-### Covered Divisions
+This system helps analyze regional electricity requirements and understand possible electricity shortages.
 
-- Barishal
-- Chattogram
-- Cumilla
-- Dhaka
-- Khulna
-- Mymensingh
-- Rajshahi
-- Rangpur
-- Sylhet
+## Covered Divisions
 
-### Dataset
+The system covers the following nine divisions:
 
-**File:** `Bangladesh_Electricity_Dataset_2019_2026.csv`
+1. Barishal
+2. Chattogram
+3. Cumilla
+4. Dhaka
+5. Khulna
+6. Mymensingh
+7. Rajshahi
+8. Rangpur
+9. Sylhet
+
+## Dataset Information
+
+**Dataset:** `Bangladesh_Electricity_Dataset_2019_2026.csv`
 
 The dataset contains daily electricity-related information, including:
 
-- Date and year
-- Month and day of the week
-- Holiday information
-- Maximum temperature in Dhaka
-- Electricity demand by division
-- Electricity supply by division
-- Load-shedding information
+- Date and year.
+- Month and day of the week.
+- Public holiday information.
+- Maximum temperature in Dhaka.
+- Electricity demand by division.
+- Electricity supply by division.
+- Load-shedding information.
 
-### Data Preprocessing
+## Data Preprocessing
 
 The following preprocessing techniques are applied:
 
-- Convert dates into datetime format.
+- Convert date columns into datetime format.
 - Identify Fridays and Saturdays as weekends.
 - Identify public holidays.
 - Replace invalid zero temperature readings with missing values.
@@ -103,31 +111,52 @@ The following preprocessing techniques are applied:
 - Use the overall median as a backup for remaining missing values.
 - Fill missing categorical values using the most frequent value.
 
-### Machine Learning Models
+These steps help prepare the historical electricity data for model training and forecasting.
 
-Three models are implemented:
+## Machine Learning and Deep Learning Models
 
-**1. Baseline Model**
+Three different forecasting approaches are implemented.
 
-Uses historical average electricity demand and supply based on the month and holiday category.
+### 1. Baseline Model
 
-**2. XGBoost Regressor**
+The Baseline model uses historical average electricity demand and supply based on the month and holiday category.
 
-Uses calendar information, area information, and temperature-related features to predict electricity demand and supply.
+It provides a reference point for evaluating the performance of more advanced machine learning and deep learning models.
 
-**3. LSTM (Long Short-Term Memory)**
+### 2. XGBoost Regressor
 
-Uses sequential daily information to learn patterns over time.
+XGBoost is used to predict electricity demand and supply based on different input features.
 
-- Sequence length: 14 days
-- Hidden layer size: 48
-- Optimizer: Adam
-- Learning rate: 0.003
-- Training epochs: 30
+The model considers information such as:
 
-### Prediction Output
+- Calendar information.
+- Division or area information.
+- Temperature-related features.
+- Historical electricity patterns.
 
-Example: 18 December 2026
+XGBoost is used as a regression model to learn relationships between the input features and electricity demand and supply.
+
+### 3. LSTM (Long Short-Term Memory)
+
+LSTM is a type of recurrent neural network designed to learn patterns from sequential data.
+
+In this project, LSTM uses historical daily information to identify time-dependent patterns and generate electricity demand and supply forecasts.
+
+**Model Configuration:**
+
+| Parameter | Value |
+|---|---|
+| Sequence Length | 14 days |
+| Hidden Layer Size | 48 |
+| Optimizer | Adam |
+| Learning Rate | 0.003 |
+| Training Epochs | 30 |
+
+## Prediction Output
+
+The system can generate electricity demand, supply, and estimated load-shedding predictions for individual divisions.
+
+**Example: 18 December 2026**
 
 | Division | Demand (MW) | Supply (MW) | Load Shedding (MW) |
 |---|---:|---:|---:|
@@ -143,34 +172,39 @@ Example: 18 December 2026
 
 *These are example outputs from the forecasting system.*
 
-### Visualization
+## Visualization
 
-The demand prediction system generates graphs showing:
+The demand prediction system generates graphical representations of:
 
-- Electricity demand
-- Electricity supply
-- Estimated load shedding
-- Daily and multi-day forecasting trends
+- Electricity demand.
+- Electricity supply.
+- Estimated load shedding.
+- Daily forecasting trends.
+- Multi-day forecasting trends.
 
-For future dates, the forecast period is highlighted in grey on multi-day graphs.
+For future dates, the forecast period is highlighted in grey on multi-day graphs to distinguish predicted values from historical information.
 
-## Project 2: Electricity Generation Forecasting
+---
 
-### Overview
+# Project 2: Electricity Generation Forecasting
 
-This system forecasts Bangladesh's electricity generation on an hourly basis.
+## Overview
 
-It predicts total generation as well as the contribution of different energy sources and electricity imports.
+The Electricity Generation Forecasting system predicts Bangladesh's electricity generation on an hourly basis.
 
-### Dataset
+It forecasts total electricity generation and analyzes the contribution of different energy sources and electricity imports.
 
-**File:** `bangladesh_power_generation_2019_2026_processed.csv`
+The objective is to understand hourly generation patterns and estimate how different energy sources contribute to the overall electricity supply.
 
-The dataset contains hourly electricity generation information.
+## Dataset Information
 
-### Prediction Features
+**Dataset:** `bangladesh_power_generation_2019_2026_processed.csv`
 
-The model predicts 11 different electricity-related values:
+The dataset contains hourly electricity generation information, including total generation and individual generation sources.
+
+## Prediction Features
+
+The model predicts 11 electricity-related parameters.
 
 | Parameter | Description |
 |---|---|
@@ -186,11 +220,11 @@ The model predicts 11 different electricity-related values:
 | Adani | Electricity imported from Adani |
 | Nepal | Electricity imported from Nepal |
 
-### Data Preprocessing
+## Data Preprocessing
 
 The following preprocessing techniques are applied:
 
-- Combine date and time into a single timestamp.
+- Combine date and time columns into a single timestamp.
 - Group multiple readings within the same hour and calculate their average.
 - Identify and remove unusually high readings.
 - Remove invalid total generation readings below 2,000 MW.
@@ -198,38 +232,58 @@ The following preprocessing techniques are applied:
 - Fill missing values using the median of the same year, month, and hour.
 - Use the overall median as a backup for remaining missing values.
 
-### Machine Learning Models
+These operations help maintain a consistent hourly dataset for forecasting.
 
-**1. Baseline Model**
+## Machine Learning and Deep Learning Models
 
-Uses historical average generation values based on month, holiday status, and hour of the day.
+Three forecasting approaches are implemented.
 
-**2. XGBoost**
+### 1. Baseline Model
 
-Uses calendar-based features such as:
+The Baseline model uses historical average generation values based on:
 
-- Hour
-- Weekday
-- Month
-- Day of the year
-- Holiday information
-- Day number
+- Month.
+- Holiday status.
+- Hour of the day.
 
-The model uses MultiOutputRegressor to predict multiple electricity generation parameters.
+It provides a reference for comparing the performance of XGBoost and LSTM.
 
-**3. LSTM (Long Short-Term Memory)**
+### 2. XGBoost Regressor
 
-Uses sequential hourly calendar features to learn time-based patterns.
+XGBoost is used to forecast multiple electricity generation parameters using calendar-based features.
 
-- Sequence length: 24 hours
-- Hidden layer size: 48
-- Optimizer: Adam
-- Learning rate: 0.003
-- Training epochs: 20
+The input features include:
 
-### Prediction Output
+- Hour.
+- Weekday.
+- Month.
+- Day of the year.
+- Holiday information.
+- Day number.
 
-Example: 18 December 2026
+The implementation uses `MultiOutputRegressor` to predict multiple electricity generation and import parameters.
+
+### 3. LSTM (Long Short-Term Memory)
+
+LSTM is used to learn sequential hourly patterns from historical electricity generation data.
+
+It processes previous hourly information to identify time-dependent generation patterns and forecast future electricity generation values.
+
+**Model Configuration:**
+
+| Parameter | Value |
+|---|---|
+| Sequence Length | 24 hours |
+| Hidden Layer Size | 48 |
+| Optimizer | Adam |
+| Learning Rate | 0.003 |
+| Training Epochs | 20 |
+
+## Prediction Output
+
+The system generates hourly electricity generation predictions for a selected date and time range.
+
+**Example: 18 December 2026**
 
 | Time | Generation (MW) | Gas | Liquid Fuel | Coal | Solar |
 |---|---:|---:|---:|---:|---:|
@@ -242,26 +296,37 @@ Example: 18 December 2026
 | 4 PM | 8,853 | 3,513 | 964 | 4,136 | 173 |
 | 5 PM | 9,021 | 3,504 | 1,149 | 4,163 | 41 |
 
-*The table shows selected columns from the example terminal output.*
+*The table displays selected columns from the example terminal output.*
 
-### Visualization
+## Visualization
 
-The generation forecasting system produces two graphs:
+The generation forecasting system produces two graphical comparisons.
 
-1. **Bangladesh Electricity Generation:** Displays the final predicted or historical generation results.
-2. **Current Result vs Previous Year's Actual Generation:** Compares the current results with actual generation recorded at the same date and time one year earlier, when matching historical data is available.
+**1. Bangladesh Electricity Generation**
 
-## Model Evaluation and Comparison
+Displays the final predicted or historical electricity generation results.
 
-Both forecasting systems support model comparison.
+**2. Current Result vs Previous Year's Actual Generation**
 
-The available models are:
+Compares the current results with actual electricity generation recorded at the same date and time one year earlier, when matching historical data is available.
+
+These visualizations help identify hourly generation patterns and compare forecasting results with historical performance.
+
+---
+
+# Model Evaluation and Comparison
+
+Both forecasting systems support model comparison to evaluate the performance of different approaches.
+
+The following models are available:
 
 - Baseline
 - XGBoost
 - LSTM
 
-### Evaluation Metrics
+## Evaluation Metrics
+
+The models are evaluated using the following metrics:
 
 | Metric | Description |
 |---|---|
@@ -270,62 +335,66 @@ The available models are:
 | MAPE | Mean Absolute Percentage Error |
 | Training Time | Time required to train each model |
 
-### Electricity Demand Evaluation
+These metrics help measure prediction errors and compare the performance of different forecasting approaches.
 
-The demand prediction system compares model performance across:
+## Electricity Demand Evaluation
 
-- All days
-- Working days
-- Weekends and holidays
-- Hot months (April–August)
-- Cool months (January–March)
+The demand prediction system evaluates model performance across different conditions:
 
-It also calculates the MAE gain against the Baseline model.
+- All days.
+- Working days.
+- Weekends and holidays.
+- Hot months (April–August).
+- Cool months (January–March).
 
-### Electricity Generation Evaluation
+It also calculates MAE improvement against the Baseline model.
 
-The generation forecasting system evaluates performance across:
+## Electricity Generation Evaluation
 
-- All hours
-- Working days
-- Weekends and holidays
-- Night hours (12 AM–5 AM)
-- Evening peak hours (6 PM–10 PM)
+The generation forecasting system evaluates model performance across:
 
-It also compares the MAE of individual generation and import parameters.
+- All hours.
+- Working days.
+- Weekends and holidays.
+- Night hours (12 AM–5 AM).
+- Evening peak hours (6 PM–10 PM).
 
-### Train-Test Split
+It also compares the MAE of individual electricity generation and import parameters.
 
-Both systems use a chronological train-test split ending on:
+## Train-Test Split
+
+Both forecasting systems use a chronological train-test split ending on:
 
 **31 December 2025**
 
 - Training data: Up to 31 December 2025.
 - Testing data: After 31 December 2025.
 
-This approach preserves the time order of the observations when evaluating forecasting performance.
+A chronological split is important for time-series forecasting because it preserves the original order of observations and helps evaluate how models perform when predicting future periods.
 
-## Installation and Usage
+---
 
-### 1. Clone the Repository
+# Installation and Usage
+
+## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/Bangladesh-Electricity-Forecasting.git
 ```
 
-### 2. Navigate to the Project Folder
+## 2. Navigate to the Project Folder
 
 ```bash
 cd Bangladesh-Electricity-Forecasting
 ```
 
-### 3. Install Dependencies
+## 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Alternatively:
+Alternatively, install the required libraries manually:
 
 ```bash
 pip install numpy pandas matplotlib scikit-learn xgboost
@@ -337,9 +406,9 @@ For LSTM support:
 pip install torch
 ```
 
-**Note:** PyTorch is optional for Baseline and XGBoost models. Both scripts import PyTorch only when the LSTM model is selected.
+**Note:** PyTorch is optional when using Baseline and XGBoost. Both scripts import PyTorch only when the LSTM model is selected.
 
-### 4. Run Electricity Demand Prediction
+## 4. Run Electricity Demand Prediction
 
 ```bash
 python electricity_demand_prediction.py
@@ -347,13 +416,13 @@ python electricity_demand_prediction.py
 
 Enter a date or date range when prompted.
 
-Example:
+**Example: Single Date**
 
 ```text
 18/12/2026
 ```
 
-Or:
+**Example: Date Range**
 
 ```text
 18/11/2026 to 17/01/2027
@@ -361,13 +430,13 @@ Or:
 
 Enter a division name or press Enter to forecast all divisions.
 
-To compare the models:
+To compare the available models:
 
 ```bash
 python electricity_demand_prediction.py compare
 ```
 
-### 5. Run Electricity Generation Forecasting
+## 5. Run Electricity Generation Forecasting
 
 ```bash
 python electricity_forecasting.py
@@ -379,7 +448,7 @@ Enter a date or date range:
 18/12/2026
 ```
 
-Enter a time:
+Enter a time range:
 
 ```text
 10 am to 5 pm
@@ -387,15 +456,17 @@ Enter a time:
 
 Press Enter at the time prompt to forecast all 24 hours.
 
-To compare the models:
+To compare the available models:
 
 ```bash
 python electricity_forecasting.py compare
 ```
 
-## Changing the Forecasting Model
+---
 
-Both Python scripts contain a `MODEL` variable.
+# Changing the Forecasting Model
+
+Both Python scripts contain a `MODEL` variable that allows users to select the forecasting approach.
 
 ```python
 MODEL = "XGBoost"
@@ -409,24 +480,46 @@ MODEL = "XGBoost"
 MODEL = "LSTM"
 ```
 
-Change this variable to select the model you want to use.
+Change the variable to select the model you want to use.
 
-## Important Notes
+---
+
+# Important Notes
 
 - Historical dates return available recorded data.
 - Dates beyond the available dataset generate model-based predictions.
 - Forecasting results are estimates, not official electricity supply or generation announcements.
 - Model accuracy depends on data quality, historical patterns, and the availability of relevant features.
-- Future weather, unexpected demand changes, fuel shortages, and power plant outages are not directly known to the forecasting models.
+- Future weather conditions, unexpected demand changes, fuel shortages, and power plant outages are not directly known to the forecasting models.
+- Model comparison results may vary depending on the selected forecasting period and available training data.
 
-## Future Improvements
+# AI Assistance & Acknowledgement
 
-- Integrate real-time electricity generation data.
-- Include more weather-related features.
-- Improve long-term forecasting accuracy.
-- Experiment with advanced time-series models.
-- Develop an interactive dashboard using Streamlit.
-- Add automated model retraining.
-- Improve forecasting for peak electricity demand periods.
+During the planning and development of this project, I used AI tools as a supporting resource for research, learning, and exploring different technical approaches.
 
-*##This project demonstrates the practical application of machine learning, deep learning, time-series forecasting, data preprocessing, model evaluation, and data visualization in Bangladesh's electricity sector.*
+AI assistance was used for:
+
+- Exploring and developing the initial project idea.
+- Finding suitable CSV datasets related to Bangladesh's electricity demand, supply, and generation.
+- Understanding the available dataset structures and identifying relevant features for forecasting.
+- Researching different machine learning and deep learning models suitable for electricity forecasting.
+- Comparing Baseline, XGBoost, and LSTM to understand their advantages and suitability for the two forecasting tasks.
+- Understanding data preprocessing techniques, time-series forecasting concepts, and model evaluation methods.
+- Exploring possible improvements to the forecasting workflow.
+
+AI was used as a learning and research assistant throughout the project.
+
+# Future Improvements
+Some possible improvements for this project include:
+
+- Integrating real-time electricity generation data.
+- Including additional weather-related features.
+- Improving long-term forecasting accuracy.
+- Experimenting with advanced time-series forecasting models.
+- Developing an interactive dashboard using Streamlit.
+- Implementing automated model retraining.
+- Improving forecasting performance during peak electricity demand periods.
+- Incorporating additional external factors such as fuel prices, power plant availability, and seasonal demand patterns.
+---
+
+*This project demonstrates the practical application of machine learning, deep learning, time-series forecasting, data preprocessing, model evaluation, and data visualization in Bangladesh's electricity sector.*
